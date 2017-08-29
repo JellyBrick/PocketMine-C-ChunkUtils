@@ -60,27 +60,24 @@ PHP_METHOD(ChunkUtils, reorderByteArray) {
 	size_t len;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s|z",
-		&byte_array, &len) != SUCCESS) {
-		return;
+		&byte_array, &len) == SUCCESS) {
+		unsigned char result[4096] = { '\0' };
+
+	    unsigned short x, y, z, zm, ym;
+	    unsigned short i = 0;
+
+	    for (x = 0; x != 16; ++x, zm = x + 256) {
+		    for (z = x; z < zm; z += 16, ym = z + 4096) {
+			    for (y = z; y < ym; y += 256) {
+				    result[i++] = byte_array[y];
+			    }
+		    }
+	    }
+
+	    RETURN_STRINGL(result, 4096)
 	}
 
-	unsigned char result[4096] = { '\0' };
-
-	unsigned short x, y, z, zm, ym;
-	unsigned short i = 0;
-
-	for (x = 0; x < 16; x++) {
-		zm = x + 256;
-		for (z = x; z < zm; z += 16) {
-			ym = z + 4096;
-			for (y = z; y < ym; y += 256) {
-				result[i] = byte_array[y];
-				i++;
-			}
-		}
-	}
-
-	RETURN_STRINGL(result, 4096)
+	return;
 } /* }}} */
 
 
@@ -92,34 +89,33 @@ PHP_METHOD(ChunkUtils, reorderNibbleArray) {
 	unsigned char *common_value = NULL;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s|s!",
-		&nibble_array, &len, &common_value, &c_len) != SUCCESS) {
-		return;
+		&nibble_array, &len, &common_value, &c_len) == SUCCESS) {
+		unsigned char result[2048] = { '\0' };
+
+	    unsigned char x, y, z;
+	    unsigned short i = 0;
+
+	    unsigned short zx;
+	    unsigned char byte1, byte2;
+
+	    for (x = 0; x != 8; ++x) {
+		    for (z = 0; z != 16; ++z, zx = ((z << 3) | x)) {
+			    for (y = 0; y != 8; ++y) {
+				    byte1 = (unsigned char)nibble_array[(y << 8) | zx];
+				    byte2 = (unsigned char)nibble_array[(y << 8) | zx | 0x80];
+
+				    result[i] = ((byte2 << 4) | (byte1 & 0x0f));
+				    result[i | 0x80] = ((byte1 >> 4) | (byte2 & 0xf0));
+				    ++i;
+			    }
+		    }
+		    i += 128;
+	    }
+
+	    RETURN_STRINGL(result, 2048)
 	}
-
-	unsigned char result[2048] = { '\0' };
-
-	unsigned char x, y, z;
-	unsigned short i = 0;
-
-	unsigned short zx;
-	unsigned char byte1, byte2;
-
-	for (x = 0; x < 8; x++) {
-		for (z = 0; z < 16; z++) {
-			zx = ((z << 3) | x);
-			for (y = 0; y < 8; y++) {
-				byte1 = (unsigned char)nibble_array[(y << 8) | zx];
-				byte2 = (unsigned char)nibble_array[(y << 8) | zx | 0x80];
-
-				result[i] = ((byte2 << 4) | (byte1 & 0x0f));
-				result[i | 0x80] = ((byte1 >> 4) | (byte2 & 0xf0));
-				i++;
-			}
-		}
-		i += 128;
-	}
-
-	RETURN_STRINGL(result, 2048)
+	
+	return;
 } /* }}} */
 
 
@@ -129,24 +125,21 @@ PHP_METHOD(ChunkUtils, convertBiomeColors) {
 
 	zval *old_colors_zv = NULL;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "a", &old_colors_zv) != SUCCESS) {
-		return;
-	}
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "a", &old_colors_zv) == SUCCESS) {
+		HashTable *old_colors_ht;
+	    unsigned char converted_ids[256] = { '\0' };
 
-	HashTable *old_colors_ht;
-	unsigned char converted_ids[256] = { '\0' };
-
-	old_colors_ht = Z_ARRVAL_P(old_colors_zv);
-
-	unsigned short i = 0;
+	    old_colors_ht = Z_ARRVAL_P(old_colors_zv);
 	
-	Bucket *b = old_colors_ht->arData;
-	for (i = 0; i < old_colors_ht->nNumUsed; i++) {
-		unsigned int color = (unsigned int) Z_LVAL(b[i].val);
-		converted_ids[i] = (unsigned char)((color >> 24) & 0xff);
+	    Bucket *b = old_colors_ht->arData;
+	    for (unsigned short i = 0; i != old_colors_ht->nNumUsed; ++i) {
+		    converted_ids[i] = (unsigned char)((((unsigned int) Z_LVAL(b[i].val)) >> 24) & 0xff);
+	    }
+
+	    RETURN_STRINGL(converted_ids, 256);
 	}
 
-	RETURN_STRINGL(converted_ids, 256);
+	return;
 } /* }}} */
 
 
