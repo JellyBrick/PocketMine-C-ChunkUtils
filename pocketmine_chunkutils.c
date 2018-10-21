@@ -131,7 +131,7 @@ PHP_METHOD(ChunkUtils, convertBiomeColors) {
 
 	    old_colors_ht = Z_ARRVAL_P(old_colors_zv);
 	
-	    Bucket *b = old_colors_ht->arData;
+	    const Bucket *b = old_colors_ht->arData;
 	    for (unsigned short i = 0; i != old_colors_ht->nNumUsed; ++i) {
 		    converted_ids[i] = (unsigned char)((((unsigned int) Z_LVAL(b[i].val)) >> 24) & 0xff);
 	    }
